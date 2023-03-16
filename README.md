@@ -4,7 +4,8 @@ Learning about Shiny Dashboards by visualizing movie data from Kaggle in R
 ## View the Dashboard App 
 
 
-(The app was too large to deploy on shinyapps.io) 
+(The app was too large to deploy on shinyapps.io)
+Here are a few screen shots of the app: 
 
 
 ## Background
