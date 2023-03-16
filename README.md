@@ -30,6 +30,8 @@ The 'Trends by Company' page allows you to explore the differences between the t
 
 The 'Histogram' page allows you to explore the distributions of data using histograms and fills. You are able to adjust the bins and choose two variables to build a histogram for.
 
+The "Trends by Country" page allows you to explore the average budget and gross for each country. I attempted to add more graphs to the same page but the dashboard keeps breaking. The code for those graphs should be in app.R page but it may not be the most updated version since I removed a lot to get app to rerun again. 
+
 ## Data Source 
 
 This data was found on Kaggle. You can find it at this link: https://www.kaggle.com/datasets/danielgrijalvas/movies
