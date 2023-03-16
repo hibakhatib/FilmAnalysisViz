@@ -1,5 +1,5 @@
 # FilmAnalysisViz
-Learning about Shiny Dashboards by visualizing Movie Data from Kaggle in R
+Learning about Shiny Dashboards by visualizing movie data from Kaggle in R
 
 ## View the Dashboard App 
 
