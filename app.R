@@ -1,6 +1,7 @@
 library(tidyverse)
 library(shiny)
 library(skimr)
+library(shinydashboard)
 
 
 film_dat <- read_csv("movies.csv")
@@ -33,6 +34,35 @@ world_film <- world_coordinates %>%
   filter(region %in% unique(final_film$country))
 
 
+##data wrangling for top 3 grossing companies
+
+company_avgs <- final_film %>%
+  group_by(company) %>%
+  summarize(mean_gross = mean(gross),
+            mean_score = mean(score),
+            mean_budget = mean(budget),
+            mean_votes = mean(votes),
+            mean_runtime = mean(runtime),
+            .groups = 'drop')
+
+top_3 <- company_avgs %>%
+  filter(mean_gross >= 966554929)
+
+worst_3 <- company_avgs %>%
+  filter(mean_gross < 6000)
+
+
+##worst 3 grossing companies
+        ## Daybreak
+        ## Copperheart Entertainment
+        ##Two Prong Lesson
+
+##top 3 grossing companies: 1
+        # Marvel Studios,
+        # Illumination Entertainment, 
+        # Fairview Entertainment
+
+
 #data wrangling for time plots
 #getting mean by each group w groups being cols
 
@@ -54,23 +84,23 @@ time_country <- final_film %>%
             mean_runtime = mean(runtime))
 
 
-
-library(shinydashboard)
+#### APP CODE STARTS HERE 
 
 ui <- dashboardPage(
   dashboardHeader(title = "Movie Data Analysis (1980-2020)"),
   dashboardSidebar(
     sidebarMenu(
       menuItem("Dashboard", tabName = "Dashboard", icon = icon("dashboard")),
-      menuItem("Trends by Country", tabName = "distCountry", icron = icon("map")),
-      menuItem("Background & Data", tabName = "background", icon = icon("file"))
+      menuItem("Trends by Company", tabName = "distCompany", icon = icon("pen")),
+      menuItem("Trends by Country", tabName = "distCountry", icon = icon("map")),
+      menuItem("Trends by Directors", tabName = "distDirector", icon = icon("film"))
     )
   ),
   dashboardBody(
     
     tabItems(
       tabItem(tabName = "Dashboard",
-              p("The 'Dashboard' page illustrates general trends by the key variables in the dataset."),
+              h4("The 'Dashboard' page illustrates general trends by the key variables in the dataset."),
               fluidRow(
                 box(plotOutput("distPlot", height = 250)),
                 
@@ -83,11 +113,14 @@ ui <- dashboardPage(
       ),
       
       tabItem(tabName = "distYear",
-              p("These graphs illustrates general trends by the average of key variables over time."),
+              h4("These graphs illustrates general trends by the average of key variables over time."),
               fluidRow(
                 box(plotOutput("timePlot")),
-                box(title = "Time Trends", 
-                    selectInput("bar_var3",
+                
+                box(
+                  title = "Time Trends", 
+                  selectInput("bar_var3",
+                              
                                 "Choose a variable to display:",
                                 choices = c("Average Scores", "Average Votes", 
                                             "Average Runtime", "Average Budget", 
@@ -95,12 +128,40 @@ ui <- dashboardPage(
                                 selected = "Average Scores")
                 ))),
       
-      tabItem(tabName = "background",
-              textOutput("backgroundInfo"))
-    )
-  ),
+    ),
   
-  tabItems(
+      ##COMPANY LAYOUT START 
+      tabItem(tabName = "distCompany",
+              h4("These graphs display summary trends by top 3 worst/best grossing companies"),
+              fluidRow(
+                box(plotOutput("barTop")),
+                
+                box(title = "Top 3 Grossing Companies",
+                    selectInput("top3_var",
+                                
+                                "Choose a variable to observe:",
+                                choices = c("Average Scores", "Average Votes", 
+                                            "Average Runtime", "Average Budget", 
+                                            "Average Gross"),
+                                selected = "Average Scores")
+                    )
+              ),
+              tabItem(tabName ="distCompany",
+                      fluidRow(
+                        box(plotOutput("barBottom")),
+                        box(title = "Worst 3 Grossing Companies",
+                            selectInput("worst3_var",
+                                        "Choose a variable to observe:",
+                                        choices = c("Average Scores", "Average Votes", 
+                                                    "Average Runtime", "Average Budget", 
+                                                    "Average Gross"),
+                                        selected = "Average Scores"))))
+      ),
+    
+      ##COMPANY LAYOUT END
+    
+    
+    ##COUNTRY LAYOUT START
     tabItem(tabName = "distCountry",
             p("Observe summary trends by country"),
             fluidRow(
@@ -111,24 +172,30 @@ ui <- dashboardPage(
                               choices = colnames(bar_data),
                               selected = "Rating"))
             ),
-        tabItem(tabName ="distCountry",
-                p("Observe time trends by country"),
-                fluidRow(
-                  box(plotOutput("timeCountry")),
-                  box(title = "Summary Time Graphs",
-                      selectInput("timeC",
-                                  "Choose a variable to observe:",
-                                  choices = c("Average Scores", "Average Votes", 
-                                              "Average Runtime", "Average Budget", 
-                                              "Average Gross"),
-                                  selected = "Average Scores"))
-                ))
-            )
-  )
-)
-)
+            tabItem(tabName ="distCountry",
+                    p("Observe time trends by country"),
+                    fluidRow(
+                      box(plotOutput("timeCountry")),
+                      box(title = "Summary Time Graphs",
+                          selectInput("timeC",
+                                      "Choose a variable to observe:",
+                                      choices = c("Average Scores", "Average Votes",
+                                                  "Average Runtime", "Average Budget",
+                                                  "Average Gross"),
+                                      selected = "Average Scores"))))
+    )
+    
+    ## MAPS HOPEFULLY HERE
+    
+    
+    ))
+    
+    
+    )
 
 server <- function(input, output) {
+  
+  ### MAIN DASHBOARD STARTS PAGE HERE 
   
   output$distPlot <- renderPlot({
     
@@ -179,52 +246,115 @@ server <- function(input, output) {
         geom_point(color = "orange") +
         ylab(y_label) +
         xlab("Year") +
-        ggtitle("Trends over Time") +
         theme(title = element_text(face = "bold",
                                    size = 12))
     })
   
-  output$backgroundInfo <- renderText({
-    ("This dashboard aims to summarize overall trends in the film industry. 
-     This data was found on Kaggle and can be accessed here: https://www.kaggle.com/datasets/danielgrijalvas/movies")})
+            ### MAIN DASHBOARD PAGE ENDS HERE
   
-  output$timeCountry <- renderPlot
-  ({
-    
-    country_dat <- final_film %>%
-      filter(country == input$timeC) %>%
-      group_by(year) %>%
-      summarize(mean_score = mean(score), 
-                mean_votes = mean(votes),
-                mean_budget = mean(budget),
-                mean_gross = mean(gross),
-                mean_runtime = mean(runtime))
-      
-    
-    y_label <- input$timeC 
-    var_c <- switch(input$timeC,
-                    "Average Scores" = country_dat$mean_score,
-                    "Average Runtime" = country_dat$mean_runtime,
-                    "Average Budget" = country_dat$mean_budget,
-                    "Average Gross" = country_dat$mean_gross,
-                    "Average Votes" = country_dat$mean_votes)
-    
-    ggplot(data = country_dat,
-           aes(x = year,
-               y = var_c)) +
-      theme_classic() +
-      geom_line(color = "purple") +
-      geom_point(color = "orange") +
-      ylab(y_label) +
-      xlab("Year") +
-      ggtitle() +
-      theme(title = element_text(face = "bold",
-                                 size = 12))
+# ------------------------------------------------------------------------
+  
+          ### COMPANY PAGE STARTS HERE
+  
+  output$barTop <- renderPlot({
     
     
-    
+    bar_top3 <- switch(input$top3_var, 
+                       "Average Scores" = top_3$mean_score,
+                       "Average Runtime" = top_3$mean_runtime,
+                       "Average Budget" = top_3$mean_budget,
+                       "Average Gross" = top_3$mean_gross,
+                       "Average Votes" = top_3$mean_votes)
+                       
+                       
+    ggplot(data = top_3, 
+           aes(y = top_3$company,
+               x = bar_top3)) + 
+      geom_col(fill = "blue", 
+               color = "orange", width = 0.85) +
+      ggtitle("Trends for Top 3 Grossing Companies") +
+      theme_classic() + 
+      ylab(NULL) +
+      xlab(input$top3_var) +
+      theme(text = element_text(size = 12,
+                                face = "bold"))
     
   })
+  
+  output$barBottom <- renderPlot(
+    {
+      
+    bar_bad3 <- switch(input$worst3_var, 
+                       "Average Scores" = worst_3$mean_score,
+                       "Average Runtime" = worst_3$mean_runtime,
+                       "Average Budget" = worst_3$mean_budget,
+                       "Average Gross" = worst_3$mean_gross,
+                       "Average Votes" = worst_3$mean_votes)
+    
+    ggplot(data = worst_3, 
+           aes(y = worst_3$company,
+               x = bar_bad3, width = 0.8)) + 
+      geom_col(fill = "blue", 
+               color = "orange") +
+      ggtitle("Trends for Worst 3 Grossing Companies") +
+      theme_classic() +
+      ylab(NULL) + 
+      xlab(input$worst3_var) +
+      theme(text = element_text(size = 12,
+                                face = "bold"))
+    
+  })
+  
+    ## COMPANY PAGE ENDS HERE
+  
+# ------------------------------------------------------------------------
+  
+      ## COUNTRY PAGE STARTS HERE
+  # output$timeCountry <- renderPlot
+  # ({
+  #   
+  #   country_dat <- final_film %>%
+  #     filter(country == input$timeC) %>%
+  #     group_by(year) %>%
+  #     summarize(mean_score = mean(score), 
+  #               mean_votes = mean(votes),
+  #               mean_budget = mean(budget),
+  #               mean_gross = mean(gross),
+  #               mean_runtime = mean(runtime))
+  #     
+  #   
+  #   y_label <- input$timeC 
+  #   var_c <- switch(input$timeC,
+  #                   "Average Scores" = country_dat$mean_score,
+  #                   "Average Runtime" = country_dat$mean_runtime,
+  #                   "Average Budget" = country_dat$mean_budget,
+  #                   "Average Gross" = country_dat$mean_gross,
+  #                   "Average Votes" = country_dat$mean_votes)
+  #   
+  #   ggplot(data = country_dat,
+  #          aes(x = year,
+  #              y = var_c)) +
+  #     theme_classic() +
+  #     geom_line(color = "purple") +
+  #     geom_point(color = "orange") +
+  #     ylab(y_label) +
+  #     xlab("Year") +
+  #     ggtitle() +
+  #     theme(title = element_text(face = "bold",
+  #                                size = 12))
+  #   
+  #   
+  # })
+  
+      ## COUNTRY PAGE ENDS HERE 
+  # ------------------------------------------------------------------------
+  
+  
+  
+  
+  ## MISC GRAPHS MADE FOR FUN 
+  
+  
   
 }
 
