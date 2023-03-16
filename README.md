@@ -18,9 +18,6 @@ The 'Trends by Company' page allows you to explore the differences between the t
 
 The 'Trends by Country' page allows you to explore the distributions of data for each country. You are given an option for the country you which to learn more about as well as which variables you want to observe. 
 
-Finally, the 'Trends by Directors' page allows you explore the distributions of data for the top 5 grossing directors. 
-
-
 ## Data Source 
 
 This data was found on Kaggle. You can find it at this link: https://www.kaggle.com/datasets/danielgrijalvas/movies
