@@ -6,8 +6,36 @@ library(maps)
 
 
 film_dat <- read_csv("movies.csv")
+world_coordinates <- map_data("world")
 
 final_film <- drop_na(film_dat)
+
+world_film <- world_coordinates %>%
+  filter(region %in% unique(final_film$country)) %>%
+  select(-c(subregion, order)) %>%
+  rename("country" = "region")
+
+
+  #will probably use this for the bar graphs and delete data wrangling below
+map_film <- final_film %>%
+  select(c(rating, genre, year, votes, 
+           score, country, gross, budget, 
+           runtime)) %>%
+  rename_with(str_to_title)
+
+  #average for fills on world map
+
+fill_map <- map_film %>%
+  filter(Country %in% unique(world_film$country)) %>%
+  group_by(Country) %>%
+  summarize(mean_gross = mean(Gross),
+            mean_score = mean(Score),
+            mean_budget = mean(Budget),
+            mean_votes = mean(Votes),
+            mean_runtime = mean(Runtime),
+            .groups = 'drop')
+
+
 
 #bar graphs
 bar_data <- final_film %>%
@@ -15,13 +43,12 @@ bar_data <- final_film %>%
 bar_data <- bar_data %>%
   rename_with(str_to_title)
 
-
+#map graphs
 country_bar_data <- final_film %>%
   select(c(score, genre, runtime, rating, year, country))
 country_bar_data <- country_bar_data %>%
   rename_with(str_to_title)
 
-#map graphs
 map_data <- final_film %>%
   select(c(gross, runtime, budget, country))
 map_data <- map_data %>%
@@ -31,8 +58,7 @@ map_graph_names <- map_data %>%
   rename_with(str_to_title)
 
 
-
-##data wrangling for top 3 grossing companies
+##data wrangling forcompanies
 
 company_avgs <- final_film %>%
   group_by(company) %>%
@@ -48,18 +74,6 @@ top_3 <- company_avgs %>%
 
 worst_3 <- company_avgs %>%
   filter(mean_gross < 6000)
-
-
-##worst 3 grossing companies
-## Daybreak
-## Copperheart Entertainment
-##Two Prong Lesson
-
-##top 3 grossing companies: 1
-# Marvel Studios,
-# Illumination Entertainment, 
-# Fairview Entertainment
-
 
 #data wrangling for time plots
 
@@ -89,12 +103,13 @@ ui <- dashboardPage(
     sidebarMenu(
       menuItem("Dashboard", tabName = "Dashboard", icon = icon("dashboard")),
       menuItem("Trends by Company", tabName = "distCompany", icon = icon("pen")),
-      menuItem("Histograms", tabName = "distCountry", icon = icon("map"))
+      menuItem("Histograms", tabName = "distCountry", icon = icon("list-alt")),
+      menuItem("Maps", tabName = "mapGraphs", icon = icon("map"))
       #menuItem("Trends by Directors", tabName = "distDirector", icon = icon("film"))
     )
   ),
   dashboardBody(
-    
+
     tabItems(
       tabItem(tabName = "Dashboard",
               h4("The 'Dashboard' page illustrates general trends by the key variables in the dataset."),
@@ -159,33 +174,68 @@ ui <- dashboardPage(
       
       ##COMPANY LAYOUT END
       
-      ##COUNTRY LAYOUT START
+      ##HISTOGRAM LAYOUT START
       tabItem(tabName = "distCountry",
               h4("Explore data with histograms"),
               fluidRow(
                 box(plotOutput("bCount")),
                 box(title = "Interact with the slider, fill, and variable options:",
-                selectInput("fill", 
-                            label = "Select fill/legend variable",
-                            choices = c("Genre", "Rating"),
-                            selected = "Genre"),
-                
-                sliderInput("bins",
-                            "Number of bins:",
-                            min = 5,
-                            max = 50,
-                            value = 30),
-                
-                radioButtons("var",
-                             label = "Variable of interest",
-                             choices = c("Gross", 
-                                         "Budget", 
-                                         "Score", 
-                                         "Votes", 
-                                         "Runtime"),
-                             selected = "Score"))
-              )))))
+                    selectInput("fill", 
+                                label = "Select fill/legend variable",
+                                choices = c("Genre", "Rating"),
+                                selected = "Genre"),
+                    
+                    sliderInput("bins",
+                                "Number of bins:",
+                                min = 5,
+                                max = 50,
+                                value = 30),
+                    
+                    radioButtons("var",
+                                 label = "Variable of interest",
+                                 choices = c("Gross", 
+                                             "Budget", 
+                                             "Score", 
+                                             "Votes", 
+                                             "Runtime"),
+                                 selected = "Score"))
+              )),
       
+       ## HIST ENDS HERE 
+      
+      
+      ##MAP STARTS HERE 
+      tabItem(tabName = "mapGraphs",
+              h4("Explore overall world film data & data by countries"),
+              h5("World Map"),
+              fluidRow(
+                box(plotOutput("mainMap")),
+                
+                box(title = "Overall world film trends",
+                    selectInput("world_var",
+                                "Choose a variable to observe:",
+                                choices = c("Average Scores", "Average Votes", 
+                                            "Average Runtime", "Average Budget", 
+                                            "Average Gross"),
+                                selected = "Average Scores")
+                )
+              ),
+              tabItem(tabName ="mapGraphs",
+                      fluidRow(
+                        box(plotOutput("countryBars")),
+                        box(title = "Bar Data by Country",
+                            selectInput("country_var",
+                                        "Choose a variable to observe:",
+                                        choices = c("Average Scores", "Average Votes", 
+                                                    "Average Runtime", "Average Budget", 
+                                                    "Average Gross"),
+                                        selected = "Average Scores"))))
+      )
+      
+      
+      
+      )))
+
 
 server <- function(input, output) {
   
@@ -262,7 +312,7 @@ server <- function(input, output) {
     
     
     ggplot(data = top_3, 
-           aes(y = top_3$company,
+           aes(y = company,
                x = bar_top3)) + 
       geom_col(fill = "blue", 
                color = "orange", width = 0.85) +
@@ -285,7 +335,7 @@ server <- function(input, output) {
                          "Average Votes" = worst_3$mean_votes)
       
       ggplot(data = worst_3, 
-             aes(y = worst_3$company,
+             aes(y = company,
                  x = bar_bad3, width = 0.8)) + 
         geom_col(fill = "blue", 
                  color = "orange") +
@@ -302,15 +352,17 @@ server <- function(input, output) {
   
   # ------------------------------------------------------------------------
   
+  
+  ### HISTOGRAMS START HERE
   output$bCount <- renderPlot({
     
     fill_hist <- switch(input$fill,
-                       "Genre" = final_film$genre,
-                       "Rating" = final_film$rating)
+                        "Genre" = final_film$genre,
+                        "Rating" = final_film$rating)
     x_lab <- switch(input$var,
                     "Genre" = "Film Genre",
                     "Rating" = "Rating")
-  
+    
     
     legend_label = switch(input$fill,
                           "Score" = "Score",
@@ -320,11 +372,11 @@ server <- function(input, output) {
                           "Budget" = "Budget")
     
     var_hist <- switch(input$var,
-                        "Score" = final_film$score,
-                        "Votes" = final_film$votes,
-                        "Runtime" = final_film$runtime,
-                        "Gross" = final_film$gross,
-                        "Budget" = final_film$budget)
+                       "Score" = final_film$score,
+                       "Votes" = final_film$votes,
+                       "Runtime" = final_film$runtime,
+                       "Gross" = final_film$gross,
+                       "Budget" = final_film$budget)
     
     breaks <- seq(min(var_hist), max(var_hist), length.out = input$bins + 1)
     
@@ -345,12 +397,34 @@ server <- function(input, output) {
       ggtitle(legend_label)
   })
   
-  
-  
-  
-  
-          #does not seem to be working at all. 
+  ### HISTOGRAMS END HERE
+
+#------------------------------------------------------------------------
   ### COUNTRY PAGE STARTS HERE
+  
+  output$mainMap <- renderPlot
+  ({
+    
+    m_var <- switch(input$world_var,
+                    "Average Score" = fill_map$mean_score,
+                    "Average Runtime" = fill_map$mean_runtime,
+                    "Average Gross" = fill_map$mean_gross,
+                    "Average Budget" = fill_map$mean_budget,
+                    "Average Votes" = fill_map$mean_votes)
+    
+    ggplot(world_film,
+           (aes(long, 
+                lat, group = group,
+                fill = m_var))) %>%
+      geom_polygon(fill = "darkorange2",
+                   color = "blue") +
+      theme_void() +
+      theme(panel.background = "gray")
+    
+    
+    
+    
+  })
   
   
   # output$bCount<- ggplot(world_film, 
@@ -366,53 +440,53 @@ server <- function(input, output) {
   #        y = "Latitude") + 
   #   theme_void() + 
   #   theme(panel.background = "gray50")
- # ({
-    
-    
-    
-    # fill_var <- switch(input$var_name,
-    #                    "Gross" = map_data$Gross,
-    #                    "Runtime" = map_data$Runtime,
-    #                    "Budget" = map_data$Budget)
-    # 
-    # 
-    # country_dat <- world_film %>%
-    #   filter(Country == "Aruba")
-    
-
-    
-    # country_dat <- final_film %>%
-    #   filter(country == input$timeC) %>%
-    #   group_by(year) %>%
-    #   summarize(mean_score = mean(score),
-    #             mean_votes = mean(votes),
-    #             mean_budget = mean(budget),
-    #             mean_gross = mean(gross),
-    #             mean_runtime = mean(runtime))
-    # 
-    # 
-    # y_label <- input$timeC
-    # var_c <- switch(input$timeC,
-    #                 "Average Scores" = country_dat$mean_score,
-    #                 "Average Runtime" = country_dat$mean_runtime,
-    #                 "Average Budget" = country_dat$mean_budget,
-    #                 "Average Gross" = country_dat$mean_gross,
-    #                 "Average Votes" = country_dat$mean_votes)
-    
-    # ggplot(data = country_dat,
-    #        aes(x = year,
-    #            y = var_c)) +
-    #   theme_classic() +
-    #   geom_line(color = "purple") +
-    #   geom_point(color = "orange") +
-    #   ylab(y_label) +
-    #   xlab("Year") +
-    #   ggtitle() +
-    #   theme(title = element_text(face = "bold",
-    #                              size = 12))
-    
-    
- # })
+  # ({
+  
+  
+  
+  # fill_var <- switch(input$var_name,
+  #                    "Gross" = map_data$Gross,
+  #                    "Runtime" = map_data$Runtime,
+  #                    "Budget" = map_data$Budget)
+  # 
+  # 
+  # country_dat <- world_film %>%
+  #   filter(Country == "Aruba")
+  
+  
+  
+  # country_dat <- final_film %>%
+  #   filter(country == input$timeC) %>%
+  #   group_by(year) %>%
+  #   summarize(mean_score = mean(score),
+  #             mean_votes = mean(votes),
+  #             mean_budget = mean(budget),
+  #             mean_gross = mean(gross),
+  #             mean_runtime = mean(runtime))
+  # 
+  # 
+  # y_label <- input$timeC
+  # var_c <- switch(input$timeC,
+  #                 "Average Scores" = country_dat$mean_score,
+  #                 "Average Runtime" = country_dat$mean_runtime,
+  #                 "Average Budget" = country_dat$mean_budget,
+  #                 "Average Gross" = country_dat$mean_gross,
+  #                 "Average Votes" = country_dat$mean_votes)
+  
+  # ggplot(data = country_dat,
+  #        aes(x = year,
+  #            y = var_c)) +
+  #   theme_classic() +
+  #   geom_line(color = "purple") +
+  #   geom_point(color = "orange") +
+  #   ylab(y_label) +
+  #   xlab("Year") +
+  #   ggtitle() +
+  #   theme(title = element_text(face = "bold",
+  #                              size = 12))
+  
+  
+  # })
   
   ## COUNTRY PAGE ENDS HERE 
   # ------------------------------------------------------------------------
