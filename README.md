@@ -7,6 +7,16 @@ Learning about Shiny Dashboards by visualizing movie data from Kaggle in R
 (The app was too large to deploy on shinyapps.io)
 Here are a few screen shots of the app: 
 
+![image](https://user-images.githubusercontent.com/98929421/225547014-98e274df-5ab3-463e-8454-69bb73184710.png)
+
+<br>
+<br>
+![image](https://user-images.githubusercontent.com/98929421/225547079-8117afed-66b3-4689-9e20-7ae784611e06.png)
+
+<br>
+<br>
+![image](https://user-images.githubusercontent.com/98929421/225547130-f4d8ca06-6d57-4af7-a9e1-2ce6272a6d18.png)
+
 
 ## Background
 
@@ -18,7 +28,7 @@ The initial page illustrates general trends using bar graphs and line plots. You
 
 The 'Trends by Company' page allows you to explore the differences between the top 3 grossing companies and the worst 3 grossing companies. 
 
-The 'Trends by Country' page allows you to explore the distributions of data for each country. You are given an option for the country you which to learn more about as well as which variables you want to observe. 
+The 'Histogram' page allows you to explore the distributions of data using histograms and fills. You are able to adjust the bins and choose two variables to build a histogram for.
 
 ## Data Source 
 
