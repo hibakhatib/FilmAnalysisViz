@@ -31,11 +31,6 @@ map_graph_names <- map_data %>%
   rename_with(str_to_title)
 
 
-world_film <- world_coordinates %>%
-  filter(region %in% unique(final_film$country)) %>%
-  select(-c(order, subregion)) %>%
-  rename("Country" = "region")
-
 
 ##data wrangling for top 3 grossing companies
 
